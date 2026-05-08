@@ -3,10 +3,12 @@ name: Build and Release APK
 on:
   push:
     branches: [ "main" ]
-  workflow_dispatch:
+  workflow_dispatch:   # Ручной запуск из интерфейса GitHub
 
 permissions:
   contents: read
+  actions: write   # 👈 Добавьте это для записи артефактов
+  checks: write    # 👈 Опционально, для статусов
 
 jobs:
   build:
@@ -38,7 +40,6 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          # Исправленные названия таргетов (добавлен eabi для armv7)
           targets: aarch64-linux-android, armv7-linux-androideabi, x86_64-linux-android, i686-linux-android
 
       - name: Rust Cache
@@ -51,7 +52,6 @@ jobs:
           chmod +x scripts/ndk-make.sh
           ./scripts/ndk-make.sh
         env:
-          # Передаем пути к SDK и NDK напрямую в скрипт сборки
           ANDROID_HOME: ${{ github.workspace }}/android-sdk
           ANDROID_NDK_HOME: ${{ steps.setup-ndk.outputs.ndk-path }}
           ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
@@ -65,5 +65,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: messenger-p2p-debug
-          path: app/build/outputs/apk/debug/app-debug.apk
+          path: app/build/outputs/apk/debug/*.apk   # 👈 Изменено на wildcard
           if-no-files-found: error
+          retention-days: 7   # 👈 Добавлено: сколько хранить артефакт
