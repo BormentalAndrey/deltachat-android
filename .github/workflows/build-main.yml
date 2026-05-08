@@ -36,33 +36,21 @@ jobs:
         with:
           ndk-version: r27
 
-      - name: Install Rust
+      - name: Install Rust and Android targets
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android, armv7-linux-androideabi, x86_64-linux-android, i686-linux-android
-
-      # ✅ ДОБАВЛЕНО: Явная установка таргетов для Android
-      - name: Add Android targets
-        run: |
-          rustup target add aarch64-linux-android
-          rustup target add armv7-linux-androideabi
-          rustup target add x86_64-linux-android
-          rustup target add i686-linux-android
-          
-          # Проверка установленных таргетов
-          rustup target list --installed
 
       - name: Rust Cache
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: jni/deltachat-core-rust
 
-      # ✅ ДОБАВЛЕНО: Установка компонента rust-src (нужен для no_std сборки)
-      - name: Install rust-src component
-        run: rustup component add rust-src
-
       - name: Build Rust Core
         run: |
+          # Ключевое исправление: синхронизируем версии
+          echo "stable" > scripts/rust-toolchain
+          
           chmod +x scripts/ndk-make.sh
           ./scripts/ndk-make.sh
         env:
@@ -74,11 +62,6 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew assembleDebug
-
-      - name: Verify APK exists
-        run: |
-          ls -la app/build/outputs/apk/debug/ || echo "Directory not found"
-          test -f app/build/outputs/apk/debug/app-debug.apk && echo "✅ APK found" || echo "❌ APK not found"
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
