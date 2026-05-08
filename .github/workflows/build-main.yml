@@ -63,6 +63,7 @@ jobs:
           ANDROID_NDK_ROOT: ${{ steps.ndk.outputs.ndk-path }}
           NDK_HOME: ${{ steps.ndk.outputs.ndk-path }}
         run: |
+          # Фикс: принудительно используем установленный stable toolchain
           echo "stable" > scripts/rust-toolchain
           ./scripts/ndk-make.sh
 
@@ -82,20 +83,24 @@ jobs:
 
       - name: Show generated APK files
         run: |
-          echo "=== Все APK файлы ==="
-          find app -type f -name "*.apk" -exec ls -lh {} \;
+          echo "=== Поиск всех сгенерированных APK файлов ==="
+          # Ищем от корня проекта (исключая кэш gradle)
+          find . -name "*.apk" -not -path "*/.gradle/*" -exec ls -lh {} \;
+          
           echo ""
-          echo "=== FOSS APK ==="
-          ls -la app/build/outputs/apk/foss/debug/ || echo "Нет FOSS APK"
+          echo "=== Директория FOSS APK ==="
+          ls -la build/outputs/apk/foss/debug/ || echo "Нет директории FOSS APK"
+          
           echo ""
-          echo "=== GPlay APK ==="
-          ls -la app/build/outputs/apk/gplay/debug/ || echo "Нет GPlay APK"
+          echo "=== Директория GPlay APK ==="
+          ls -la build/outputs/apk/gplay/debug/ || echo "Нет директории GPlay APK"
 
       - name: Upload FOSS APK
         uses: actions/upload-artifact@v4
         with:
           name: deltachat-foss-debug
-          path: app/build/outputs/apk/foss/debug/*.apk
+          # Путь изменен: убрано app/
+          path: build/outputs/apk/foss/debug/*.apk
           if-no-files-found: warn
           retention-days: 7
 
@@ -103,14 +108,16 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: deltachat-gplay-debug
-          path: app/build/outputs/apk/gplay/debug/*.apk
+          # Путь изменен: убрано app/
+          path: build/outputs/apk/gplay/debug/*.apk
           if-no-files-found: warn
           retention-days: 7
 
-      - name: Upload universal debug APK (if exists)
+      - name: Upload fallback debug APK (if flavors failed but default succeeded)
         uses: actions/upload-artifact@v4
         with:
-          name: deltachat-debug-universal
-          path: app/build/outputs/apk/debug/*.apk
+          name: deltachat-debug-fallback
+          # Универсальный путь: заберет любые APK в папке build, если они сгенерировались по другому пути
+          path: "**/build/outputs/apk/**/*.apk"
           if-no-files-found: warn
           retention-days: 7
